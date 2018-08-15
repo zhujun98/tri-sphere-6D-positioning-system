@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import fsolve
 
 
 def rotation_x(theta):
@@ -27,12 +28,7 @@ def rotation_fixed_angle(gamma, beta, alpha):
     return rotation_z(alpha) * rotation_y(beta) * rotation_x(gamma)
 
 
-def get_plane_orientation(p1, p2, p3):
-    ret = np.cross(p1 - p2, p1 - p3)
-    return ret/np.linalg.norm(ret)
-
-
-def trisphere_forward_kinematics(j_dp, j_p0, c_p0, c_r0):
+def trisphere_forward_kinematics(j_dp, j_p0, c_p0):
     """Forward kinematics of the Tri-sphere 6D system.
 
     :param tuple: changes of the jacks' positions
@@ -41,18 +37,23 @@ def trisphere_forward_kinematics(j_dp, j_p0, c_p0, c_r0):
         (j1_p0, j2_p0, j3_p0) in the Tri-Sphere coordinate system.
     :param numpy.array c_p0: current position of the control point in the
         Tri-Sphere coordinate system.
-    :param numpy.array c_r0: current orientation of the control point in
-        the Tri-Sphere coordinate system.
 
     :return: changes of the position (dx, dy, dz) and orientation
         (gamma, beta, alpha) of the control point.
     """
-    c_dp = np.array([0, 0, 0])
-    c_dr = np.array([0, 0, 0])
-    return c_dp, c_dr
+    def obj_func(x):
+        ret, _ = trisphere_inverse_kinematics(x[:3], x[3:], c_p0, j_p0)
+        return np.array([ret[0][1] - j_dp[0][1], ret[0][2] - j_dp[0][2],
+                         ret[1][0] - j_dp[1][0], ret[1][2] - j_dp[1][2],
+                         ret[2][0] - j_dp[2][0], ret[2][2] - j_dp[2][2]])
+
+    x0 = np.array([c_p0[0], c_p0[1], c_p0[2], 0., 0., 0.])
+    ret = fsolve(obj_func, x0)
+    ret[3:] = np.rad2deg(ret[3:])
+    return ret
 
 
-def trisphere_inverse_kinematics(c_dp, c_dr, c_p0, c_r0, j_p0):
+def trisphere_inverse_kinematics(c_dp, c_dr, c_p0, j_p0):
     """Inverse kinematics of the Tri-sphere 6D system.
 
     :param numpy.array c_dp: position change (dx, dy, dz) of the control
@@ -61,8 +62,6 @@ def trisphere_inverse_kinematics(c_dp, c_dr, c_p0, c_r0, j_p0):
         the control point.
     :param numpy.array c_p0: current position of the control point in the
         Tri-Sphere coordinate system.
-    :param numpy.array c_r0: current orientation of the control point in
-        the Tri-Sphere coordinate system.
     :param tuple j_p0: current positions of the jacks
         (j1_p0, j2_p0, j3_p0) in the Tri-Sphere coordinate system.
 
