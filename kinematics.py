@@ -35,18 +35,22 @@ def trisphere_forward_kinematics(j_p, j_np, c_np,
 
     :param tuple: jacks' target positions (j1_p, j2_p, j3_p) relative to
         their respective null positions.
-    :param tuple j_np: null positions of the jacks (j1_np, j2_np, j3_np)
-        in the Tri-Sphere coordinate system.
-    :param numpy.array c_np: null position of the control point in the
-        Tri-Sphere coordinate system.
-    :param numpy.array c_p0: current position of the control point in the
-        Tri-Sphere coordinate system.
-    :param numpy.array c_r0: current position of the control point in the
-        Tri-Sphere coordinate system.
+    :param tuple j_np: null positions of the jacks (j1_np, j2_np, j3_np).
+    :param numpy.array c_np: null position (x, y, z) of the control point.
+    :param numpy.array c_p0: current position (x, y, z) of the control
+        point relative to its null position.
+    :param numpy.array c_r0: current rotation (gamma, beta, alpha) of the
+        control point.
 
-    :return: target of the position (x, y, z) and rotation
-        (gamma, beta, alpha) of the control point in radians.
+    :return: target of the position (x, y, z) and rotation (gamma, beta,
+        alpha) of the control point.
+
+    Note: c_p0 and c_r0 are simply used as a starting point for solving
+        the forward kinematics.
     """
+    if j_p[0][0] != 0 or j_p[1][2] !=0 or j_p[2][2] != 0:
+        raise ValueError("Invalid jacks' target position!")
+
     def obj_func(x):
         ret, _ = trisphere_inverse_kinematics(x[:3], x[3:], c_np, j_np)
         # z1, y1, x2, y2, x3, y3
@@ -66,11 +70,9 @@ def trisphere_inverse_kinematics(c_p, c_r, c_np, j_np):
     :param numpy.array c_p: target position (x, y, z) of the control point
         relative to its null position.
     :param numpy.array c_r: target rotation (gamma, beta, alpha) of the
-        control point in radians.
-    :param numpy.array c_np: null position of the control point in the
-        Tri-Sphere coordinate system.
-    :param tuple j_np: null positions of the jacks (j1_np, j2_np, j3_np)
-        in the Tri-Sphere coordinate system.
+        control point.
+    :param numpy.array c_np: null position of the control point.
+    :param tuple j_np: null positions of the jacks (j1_np, j2_np, j3_np).
 
     :return: jacks' target positions (j1_p, j2_p, j3_p) relative to their
         respective null position and "transformed null positions"
